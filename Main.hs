@@ -1,3 +1,12 @@
+import System.IO
+
+data Instruction = Addx Int | Noop deriving Show
+
 main = do
-  putStrLn "Hello"
-  putStrLn "World"
+  contents <- readFile "Example.txt"
+  let instructions = map toInstr $ lines $ contents
+  print instructions
+
+toInstr :: String -> Instruction
+toInstr "noop" = Noop
+toInstr add = Addx $ read $ head $ tail $ words add
