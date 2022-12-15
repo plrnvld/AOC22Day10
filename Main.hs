@@ -10,7 +10,10 @@ main = do
       withCycles = map (\i -> (i, cycleTime i, xChange i)) instructions
       withTotals = scanl (\(i1, c1, x1) (i2, c2, x2) -> (i2, c1 + c2, x1 + x2)) (Noop, 0, 1) withCycles
       withSignal = map (\(i, c, x) -> (i, c, x, c * (x - xChange i))) withTotals
-      on20mod40 = keepWhen (\(i, c, x, s) -> c `mod` 40 < 20) (\(i, c, x, s) -> (c + cycleTime i) `mod` 40 == 20) withSignal
+      on20mod40 = keepWhen 
+          (\(i, c, x, s) -> c `mod` 40 < 20) 
+          (\(i, c, x, s) -> c `mod` 40 == 20 || c `mod` 40 == 21)
+          withSignal
       signals = map (\(i, c, x, s) -> s) on20mod40
       total = sum signals
   print on20mod40
