@@ -8,15 +8,12 @@ main = do
   let instructions = map toInstr $ lines contents
       withCycles = map (\i -> (i, cycleTime i, xChange i)) instructions
       withTotals = scanl (\(i1, c1, x1) (i2, c2, x2) -> (i2, c1 + c2, x1 + x2)) (Noop, 0, 1) withCycles
-      withSignal = map (\(i, c, x) -> (i, c, x, to20Mod40 c * x)) withTotals
-      on20mod40 = keepWhen
-          (\(i, c, x, s) -> c `mod` 40 < 20)
-          (\(i, c, x, s) -> c `mod` 40 == 20 || c `mod` 40 == 21)
-          withSignal
-      signals = map (\(i, c, x, s) -> s) on20mod40
-      total = sum signals
-     -- allCycles = fillCycles withSignal
-  print total
+      allCycles = fillCycles withTotals
+      withPixels = map (\(i, c, x) -> (i, c, x, if abs (c `mod` 40 - x) <= 1 then '#' else '.')) allCycles
+      onlyPixels = map (\(i, c, x, p) -> p) withPixels
+      splitted = splitEvery 40 onlyPixels
+      joined = concatMap ("\n" ++) splitted
+  putStr joined
 
 toInstr :: String -> Instruction
 toInstr "noop" = Noop
@@ -25,24 +22,20 @@ toInstr add = Addx $ read $ head $ tail $ words add
 cycleTime :: Instruction -> Int
 cycleTime Noop = 1
 cycleTime (Addx _) = 2
+cycleTime Prev = error "Prev should not happen here"
 
 xChange :: Instruction -> Int
 xChange Noop = 0
 xChange (Addx change) = change
+xChange Prev = error "Prev should not happen here"
 
-fillCycles :: [(Instruction, Int, Int, Int)] -> [(Instruction, Int, Int, Int)]
+fillCycles :: [(Instruction, Int, Int)] -> [(Instruction, Int, Int)]
 fillCycles [] = []
 fillCycles [tup] = [tup]
-fillCycles (tup1@(i1, c1, x1, s1):tup2@(i2, c2, x2, s2):tups) 
+fillCycles (tup1@(i1, c1, x1):tup2@(i2, c2, x2):tups) 
     | c1 + 1 == c2 = tup1: fillCycles (tup2:tups)
-    | c1 + 2 == c2 = tup1: (Prev, c1 + 1, x1, s1) : fillCycles (tup2:tups)
+    | c1 + 2 == c2 = tup1: (Prev, c1 + 1, x1) : fillCycles (tup2:tups)
+    | otherwise = error "No other differences between cycles expected"
 
-keepWhen :: (a -> Bool) -> (a -> Bool) -> [a] -> [a]
-keepWhen p q [] = []
-keepWhen p q [x] = []
-keepWhen p q (x1 : x2 : xs)
-  | p x1 && q x2 = x1 : keepWhen p q (x2 : xs)
-  | otherwise = keepWhen p q (x2 : xs)
-
-to20Mod40 :: Int -> Int
-to20Mod40 n = n - n `mod` 40 + 20
+splitEvery :: Int -> [a] -> [[a]]
+splitEvery n = takeWhile (not.null) . map (take n) . iterate (drop n)
