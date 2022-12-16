@@ -1,7 +1,7 @@
 import Debug.Trace
 import System.IO
 
-data Instruction = Addx Int | Noop deriving (Show)
+data Instruction = Addx Int | Noop | Prev deriving (Show)
 
 main = do
   contents <- readFile "Input.txt"
@@ -15,6 +15,7 @@ main = do
           withSignal
       signals = map (\(i, c, x, s) -> s) on20mod40
       total = sum signals
+     -- allCycles = fillCycles withSignal
   print total
 
 toInstr :: String -> Instruction
@@ -28,6 +29,13 @@ cycleTime (Addx _) = 2
 xChange :: Instruction -> Int
 xChange Noop = 0
 xChange (Addx change) = change
+
+fillCycles :: [(Instruction, Int, Int, Int)] -> [(Instruction, Int, Int, Int)]
+fillCycles [] = []
+fillCycles [tup] = [tup]
+fillCycles (tup1@(i1, c1, x1, s1):tup2@(i2, c2, x2, s2):tups) 
+    | c1 + 1 == c2 = tup1: fillCycles (tup2:tups)
+    | c1 + 2 == c2 = tup1: (Prev, c1 + 1, x1, s1) : fillCycles (tup2:tups)
 
 keepWhen :: (a -> Bool) -> (a -> Bool) -> [a] -> [a]
 keepWhen p q [] = []
